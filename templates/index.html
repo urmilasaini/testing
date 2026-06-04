@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mini Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+  </head>
+  <body>
+    <main class="chat-shell">
+      <section class="chat-panel" aria-label="Mini chat">
+        <header class="chat-header">
+          <div>
+            <h1>Mini Chat</h1>
+            <p>Messages are kept while the server is running.</p>
+          </div>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="chat-form" class="composer">
+          <input id="name" name="name" autocomplete="name" placeholder="Name" maxlength="32">
+          <input id="text" name="text" autocomplete="off" placeholder="Write a message" maxlength="500" required>
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <script>
+      const messagesEl = document.querySelector("#messages");
+      const form = document.querySelector("#chat-form");
+      const nameInput = document.querySelector("#name");
+      const textInput = document.querySelector("#text");
+
+      function escapeHtml(value) {
+        return value.replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#039;"
+        }[char]));
+      }
+
+      function renderMessages(messages) {
+        if (!messages.length) {
+          messagesEl.innerHTML = '<p class="empty">No messages yet.</p>';
+          return;
+        }
+
+        messagesEl.innerHTML = messages.map((message) => `
+          <article class="message">
+            <div class="message-meta">
+              <strong>${escapeHtml(message.name)}</strong>
+              <time>${escapeHtml(message.time)}</time>
+            </div>
+            <p>${escapeHtml(message.text)}</p>
+          </article>
+        `).join("");
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      async function loadMessages() {
+        const response = await fetch("/messages");
+        renderMessages(await response.json());
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const text = textInput.value.trim();
+
+        if (!text) {
+          return;
+        }
+
+        await fetch("/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: nameInput.value.trim(),
+            text
+          })
+        });
+
+        textInput.value = "";
+        textInput.focus();
+        await loadMessages();
+      });
+
+      loadMessages();
+      setInterval(loadMessages, 3000);
+    </script>
+  </body>
+</html>
