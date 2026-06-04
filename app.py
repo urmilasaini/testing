@@ -12,6 +12,10 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/messages")
+def get_messages():
+    return jsonify(messages)
+
 
 @app.post("/messages")
 def add_message():
